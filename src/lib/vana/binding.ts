@@ -1,5 +1,11 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
-import { REQUEST_BINDING_TTL_MS, VANA_APP } from "./constants";
+import {
+  REQUEST_BINDING_TTL_MS,
+  VANA_APPS,
+  isVanaSource,
+  type VanaAppDefinition,
+  type VanaSource,
+} from "./constants";
 import type { VanaRuntime } from "./runtime";
 
 const COOKIE_PREFIX = "vana_request_";
@@ -8,9 +14,9 @@ const BINDING_VERSION = 1;
 export type RequestBinding = {
   version: typeof BINDING_VERSION;
   requestId: string;
-  appId: typeof VANA_APP.id;
-  source: typeof VANA_APP.source;
-  scope: typeof VANA_APP.scope;
+  appId: string;
+  source: VanaSource;
+  scope: string;
   returnOrigin: string;
   runtime: VanaRuntime;
   expiresAt: number;
@@ -41,6 +47,7 @@ export function requestBindingCookieName(requestId: string): string {
 export function createRequestBinding(
   input: {
     requestId: string;
+    app: VanaAppDefinition;
     runtime: VanaRuntime;
     returnOrigin: string;
     now?: number;
@@ -50,9 +57,9 @@ export function createRequestBinding(
   const payload: RequestBinding = {
     version: BINDING_VERSION,
     requestId: input.requestId,
-    appId: VANA_APP.id,
-    source: VANA_APP.source,
-    scope: VANA_APP.scope,
+    appId: input.app.id,
+    source: input.app.source,
+    scope: input.app.scope,
     returnOrigin: input.returnOrigin,
     runtime: input.runtime,
     expiresAt: (input.now ?? Date.now()) + REQUEST_BINDING_TTL_MS,
@@ -125,13 +132,14 @@ function safeEqual(provided: string, expected: string): boolean {
 
 function isRequestBinding(value: unknown): value is RequestBinding {
   if (!isRecord(value) || !isRecord(value.runtime)) return false;
+  if (!isVanaSource(value.source)) return false;
+  const app = VANA_APPS[value.source];
   return (
     value.version === BINDING_VERSION &&
     typeof value.requestId === "string" &&
     value.requestId.length > 0 &&
-    value.appId === VANA_APP.id &&
-    value.source === VANA_APP.source &&
-    value.scope === VANA_APP.scope &&
+    value.appId === app.id &&
+    value.scope === app.scope &&
     typeof value.returnOrigin === "string" &&
     Number.isFinite(value.expiresAt) &&
     (value.runtime.env === "dev" || value.runtime.env === "production") &&

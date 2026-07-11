@@ -2,7 +2,7 @@ import "server-only";
 
 import { createDirectDataController } from "@opendatalabs/vana-sdk/server";
 import { resolveAppUrl } from "./app-url";
-import { VANA_APP } from "./constants";
+import type { VanaAppDefinition } from "./constants";
 import type { VanaRuntime } from "./runtime";
 
 type Controller = ReturnType<typeof createDirectDataController>;
@@ -30,8 +30,12 @@ export function getVanaServerConfig(): VanaServerConfig {
   };
 }
 
-export function getVanaController(runtime: VanaRuntime, config = getVanaServerConfig()): Controller {
-  const key = `${runtime.env}:${runtime.network}`;
+export function getVanaController(
+  runtime: VanaRuntime,
+  app: VanaAppDefinition,
+  config = getVanaServerConfig(),
+): Controller {
+  const key = `${app.source}:${runtime.env}:${runtime.network}`;
   const cached = controllers.get(key);
   if (cached) return cached;
 
@@ -43,12 +47,12 @@ export function getVanaController(runtime: VanaRuntime, config = getVanaServerCo
     network: runtime.network,
     appPrivateKey: config.appPrivateKey,
     app: {
-      id: VANA_APP.id,
-      name: VANA_APP.name,
+      id: app.id,
+      name: app.name,
       homepageUrl: config.appUrl,
     },
-    source: VANA_APP.source,
-    scopes: [VANA_APP.scope],
+    source: app.source,
+    scopes: [app.scope],
   });
   controllers.set(key, controller);
   return controller;

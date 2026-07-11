@@ -33,7 +33,7 @@ export function mapClientError(error: unknown): ClientError {
   if (error instanceof AccessNotApprovedError) {
     return {
       kind: "not_ready",
-      error: "The approved LinkedIn profile is not ready to read.",
+      error: "The approved data is not ready to read.",
       status: 409,
     };
   }

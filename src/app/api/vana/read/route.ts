@@ -1,5 +1,6 @@
 import { mapLinkedInProfile } from "@/lib/linkedin-profile";
-import { assertLinkedInReadReady } from "@/lib/vana/capability";
+import { mapSpotifyMusic } from "@/lib/spotify-music";
+import { assertScopeReadReady } from "@/lib/vana/capability";
 import { mapClientError } from "@/lib/vana/errors";
 import { getBoundVanaRequest, requestIdFromUrl } from "@/lib/vana/request";
 import { jsonNoStore } from "@/lib/vana/response";
@@ -24,11 +25,14 @@ export async function GET(request: NextRequest) {
     }
 
     const status = await bound.controller.getAccessRequestStatus(requestId);
-    assertLinkedInReadReady(status);
+    assertScopeReadReady(status, bound.app);
     const result = await bound.controller.readApprovedData({ requestId });
     return jsonNoStore({
       scope: result.scope,
-      data: mapLinkedInProfile(result.data),
+      data:
+        bound.app.source === "spotify"
+          ? mapSpotifyMusic(result.data)
+          : mapLinkedInProfile(result.data),
     });
   } catch (error) {
     const clientError = mapClientError(error);

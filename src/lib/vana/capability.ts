@@ -2,13 +2,13 @@ import {
   AccessNotApprovedError,
   type AccessRequestStatus,
 } from "@opendatalabs/vana-sdk/server";
-import { VANA_APP } from "./constants";
+import type { VanaAppDefinition } from "./constants";
 
-export function assertLinkedInReadReady(status: AccessRequestStatus): void {
+export function assertScopeReadReady(status: AccessRequestStatus, app: VanaAppDefinition): void {
   if (
     (status.status !== "approved" && status.status !== "ready_for_read") ||
-    status.scope !== VANA_APP.scope
+    status.scope !== app.scope
   ) {
-    throw new AccessNotApprovedError("LinkedIn profile capability is not ready.");
+    throw new AccessNotApprovedError(`${app.name} capability is not ready.`);
   }
 }

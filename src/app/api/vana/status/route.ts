@@ -1,5 +1,5 @@
 import { mapClientError } from "@/lib/vana/errors";
-import { assertLinkedInReadReady } from "@/lib/vana/capability";
+import { assertScopeReadReady } from "@/lib/vana/capability";
 import { getBoundVanaRequest, requestIdFromUrl } from "@/lib/vana/request";
 import { jsonNoStore } from "@/lib/vana/response";
 import { NextRequest } from "next/server";
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const status = await bound.controller.getAccessRequestStatus(requestId);
     if (status.status === "approved" || status.status === "ready_for_read") {
-      assertLinkedInReadReady(status);
+      assertScopeReadReady(status, bound.app);
     }
     return jsonNoStore({ status: status.status });
   } catch (error) {

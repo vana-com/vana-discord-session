@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { readRequestBinding } from "./binding";
+import { resolveVanaApp } from "./constants";
 import { getVanaController, getVanaServerConfig } from "./server";
 
 export function requestIdFromUrl(url: string): string | null {
@@ -17,5 +18,6 @@ export function getBoundVanaRequest(request: NextRequest, requestId: string) {
     config.appPrivateKey,
   );
   if (!binding) return null;
-  return { binding, controller: getVanaController(binding.runtime, config), config };
+  const app = resolveVanaApp(binding.source);
+  return { binding, app, controller: getVanaController(binding.runtime, app, config), config };
 }

@@ -14,7 +14,8 @@ import {
   requestBindingCookieName,
   setRequestBindingCookie,
 } from "../src/lib/vana/binding";
-import { assertLinkedInReadReady } from "../src/lib/vana/capability";
+import { assertScopeReadReady } from "../src/lib/vana/capability";
+import { VANA_APPS, isVanaSource } from "../src/lib/vana/constants";
 import { mapClientError } from "../src/lib/vana/errors";
 import { jsonNoStore } from "../src/lib/vana/response";
 import { resolveLaunchRuntime } from "../src/lib/vana/runtime";
@@ -116,7 +117,10 @@ test("keeps concurrent request bindings independent and rejects tampering", () =
   };
 
   for (const requestId of ["dcr_one", "dcr_two"]) {
-    const binding = createRequestBinding({ requestId, runtime, returnOrigin: ORIGIN, now }, SECRET);
+    const binding = createRequestBinding(
+      { requestId, app: VANA_APPS.linkedin, runtime, returnOrigin: ORIGIN, now },
+      SECRET,
+    );
     setRequestBindingCookie(writer, requestId, binding, true);
   }
 
@@ -143,10 +147,60 @@ test("keeps concurrent request bindings independent and rejects tampering", () =
   assert.equal(readRequestBinding(reader, { requestId: "dcr_one", returnOrigin: ORIGIN, now: now + 11 * 60 * 1000 }, SECRET), null);
 });
 
-test("blocks reads until the requested linkedin.profile capability is ready", () => {
-  assert.doesNotThrow(() => assertLinkedInReadReady({ status: "ready_for_read", scope: "linkedin.profile" }));
-  assert.throws(() => assertLinkedInReadReady({ status: "pending" }), AccessNotApprovedError);
-  assert.throws(() => assertLinkedInReadReady({ status: "approved", scope: "linkedin.skills" }), AccessNotApprovedError);
+test("blocks reads until the requested capability is ready, per source", () => {
+  assert.doesNotThrow(() =>
+    assertScopeReadReady({ status: "ready_for_read", scope: "linkedin.profile" }, VANA_APPS.linkedin),
+  );
+  assert.doesNotThrow(() =>
+    assertScopeReadReady({ status: "approved", scope: "spotify.savedTracks" }, VANA_APPS.spotify),
+  );
+  assert.throws(() => assertScopeReadReady({ status: "pending" }, VANA_APPS.linkedin), AccessNotApprovedError);
+  assert.throws(
+    () => assertScopeReadReady({ status: "approved", scope: "linkedin.skills" }, VANA_APPS.linkedin),
+    AccessNotApprovedError,
+  );
+  assert.throws(
+    () => assertScopeReadReady({ status: "approved", scope: "linkedin.profile" }, VANA_APPS.spotify),
+    AccessNotApprovedError,
+  );
+});
+
+test("binds requests to their source and rejects cross-source mixups", () => {
+  const now = 1_000;
+  const runtime = { env: "production", network: "mainnet" } as const;
+  const cookies = new Map<string, string>();
+  const writer = { set: (name: string, value: string) => void cookies.set(name, value) };
+  const reader = {
+    get(name: string) {
+      const value = cookies.get(name);
+      return value === undefined ? undefined : { value };
+    },
+  };
+
+  const binding = createRequestBinding(
+    { requestId: "dcr_spotify", app: VANA_APPS.spotify, runtime, returnOrigin: ORIGIN, now },
+    SECRET,
+  );
+  setRequestBindingCookie(writer, "dcr_spotify", binding, true);
+
+  const parsed = readRequestBinding(reader, { requestId: "dcr_spotify", returnOrigin: ORIGIN, now: now + 1 }, SECRET);
+  assert.equal(parsed?.source, "spotify");
+  assert.equal(parsed?.scope, "spotify.savedTracks");
+  assert.equal(parsed?.appId, "spotify-music-preferences");
+
+  // A binding whose fields mix sources must not validate, even correctly signed.
+  const mixed = { ...VANA_APPS.spotify, scope: VANA_APPS.linkedin.scope };
+  const mixedBinding = createRequestBinding(
+    { requestId: "dcr_mixed", app: mixed, runtime, returnOrigin: ORIGIN, now },
+    SECRET,
+  );
+  setRequestBindingCookie(writer, "dcr_mixed", mixedBinding, true);
+  assert.equal(readRequestBinding(reader, { requestId: "dcr_mixed", returnOrigin: ORIGIN, now: now + 1 }, SECRET), null);
+
+  assert.equal(isVanaSource("spotify"), true);
+  assert.equal(isVanaSource("linkedin"), true);
+  assert.equal(isVanaSource("github"), false);
+  assert.equal(isVanaSource(undefined), false);
 });
 
 test("maps SDK and unknown failures to sanitized client errors", () => {
@@ -157,7 +211,7 @@ test("maps SDK and unknown failures to sanitized client errors", () => {
   });
   assert.deepEqual(mapClientError(new AccessNotApprovedError("private status detail")), {
     kind: "not_ready",
-    error: "The approved LinkedIn profile is not ready to read.",
+    error: "The approved data is not ready to read.",
     status: 409,
   });
   assert.deepEqual(mapClientError(new PersonalServerReadError("private upstream detail", 502)), {
