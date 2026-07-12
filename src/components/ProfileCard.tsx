@@ -47,39 +47,39 @@ function useVanaSource<T>(source: VanaSource) {
   });
 }
 
-export function ProfileCard({
-  sample,
-  musicSample,
-}: {
-  sample: LinkedInSnapshot;
-  musicSample: MusicSnapshot;
-}) {
+export function ProfileCard() {
   const linkedin = useVanaSource<LinkedInSnapshot>("linkedin");
   const spotify = useVanaSource<MusicSnapshot>("spotify");
 
-  const profileLive = linkedin.state.type === "done";
-  const profile = linkedin.state.type === "done" ? linkedin.state.result.data : sample;
-  const bio = generateBio(profile);
-
-  const music = spotify.state.type === "done" ? spotify.state.result.data : musicSample;
+  const profile = linkedin.state.type === "done" ? linkedin.state.result.data : null;
+  const music = spotify.state.type === "done" ? spotify.state.result.data : null;
 
   return (
     <aside className="profile-panel" aria-live="polite">
       <h2>Your profile</h2>
       <div className="profile-card">
         <div className="profile-head">
-          <div className="avatar" style={{ background: profileLive ? "#5865f2" : "#6d6f78" }}>
-            {profile.name.charAt(0).toUpperCase()}
+          <div className="avatar" style={{ background: profile ? "#5865f2" : "#6d6f78" }}>
+            {profile ? profile.name.charAt(0).toUpperCase() : "?"}
           </div>
           <div>
-            <div className="profile-name">{profile.name}</div>
-            <div className="profile-headline">{profile.headline || "No headline"}</div>
+            <div className="profile-name">{profile ? profile.name : "Not connected yet"}</div>
+            <div className="profile-headline">
+              {profile ? profile.headline || "No headline" : "Your intro will appear here"}
+            </div>
           </div>
         </div>
 
-        <div className="bio">{bio}</div>
+        {profile ? (
+          <div className="bio">{generateBio(profile)}</div>
+        ) : (
+          <div className="bio empty">
+            Nothing here yet. Connect your LinkedIn below and the bot will draft your intro from
+            data you approve.
+          </div>
+        )}
 
-        {profile.skills.length > 0 ? (
+        {profile && profile.skills.length > 0 ? (
           <div className="skills">
             {profile.skills.map((skill) => (
               <span key={skill} className="skill-chip">
@@ -93,8 +93,14 @@ export function ProfileCard({
 
         <div className="music-section">
           <h3 className="section-title">Music preferences</h3>
-          <div className="bio">{describeMusicPreferences(music)}</div>
-          {music.topArtists.length > 0 ? (
+          {music ? (
+            <div className="bio">{describeMusicPreferences(music)}</div>
+          ) : (
+            <div className="bio empty">
+              Nothing here yet. Connect Spotify to show what you&apos;re into.
+            </div>
+          )}
+          {music && music.topArtists.length > 0 ? (
             <div className="skills">
               {music.topArtists.map((artist) => (
                 <span key={artist} className="skill-chip">
@@ -167,12 +173,12 @@ function ConnectControls<T>({
 
       {isLive ? (
         <button className="secondary-action button-link" type="button" onClick={connect.reset}>
-          Reset to sample
+          Disconnect
         </button>
       ) : null}
 
       <span className={`mode-label ${isLive ? "live" : "sample"}`}>
-        {isLive ? "From your approved data" : "Sample data"}
+        {isLive ? "From your approved data" : "Not connected"}
       </span>
     </>
   );
@@ -188,13 +194,13 @@ type SourceCopy = {
 const SOURCE_COPY: Record<VanaSource, SourceCopy> = {
   linkedin: {
     connectLabel: "Connect LinkedIn to personalize",
-    idle: "This bio is written from sample data. Connect your real LinkedIn profile through Vana to personalize it — you approve exactly what the bot can read.",
+    idle: "Connect your real LinkedIn profile through Vana and the bot writes your intro — you approve exactly what it can read.",
     reading: "Reading your approved profile from your Personal Server…",
     done: "This bio was written from data you approved. Nothing else was shared.",
   },
   spotify: {
     connectLabel: "Connect Spotify to personalize",
-    idle: "These music preferences are sample data. Connect your Spotify liked songs through Vana to personalize them — you approve exactly what the bot can read.",
+    idle: "Connect your Spotify liked songs through Vana to fill this in — you approve exactly what the bot can read.",
     reading: "Reading your approved liked songs from your Personal Server…",
     done: "These music preferences come from data you approved. Nothing else was shared.",
   },
