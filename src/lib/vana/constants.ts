@@ -8,13 +8,13 @@ export type VanaAppDefinition = {
 export const VANA_APPS = {
   linkedin: {
     id: "linkedin-profile-snapshot",
-    name: "LinkedIn Profile Snapshot",
+    name: "DevCord",
     source: "linkedin",
     scope: "linkedin.profile",
   },
   spotify: {
     id: "spotify-music-preferences",
-    name: "Spotify Music Preferences",
+    name: "DevCord",
     source: "spotify",
     scope: "spotify.savedTracks",
   },
