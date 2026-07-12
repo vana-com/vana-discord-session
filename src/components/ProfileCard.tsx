@@ -63,54 +63,63 @@ export function ProfileCard() {
             {profile ? profile.name.charAt(0).toUpperCase() : "?"}
           </div>
           <div>
-            <div className="profile-name">{profile ? profile.name : "Not connected yet"}</div>
+            <div className="profile-name-row">
+              <div className="profile-name">{profile ? profile.name : "Not connected yet"}</div>
+              {profile ? (
+                <span className="verified-badge">
+                  <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true">
+                    <circle cx="12" cy="12" r="11" fill="currentColor" />
+                    <path
+                      d="M7 12.5l3 3 6.5-7"
+                      stroke="var(--bg-darkest)"
+                      strokeWidth="2.5"
+                      fill="none"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  Verified
+                </span>
+              ) : null}
+            </div>
             <div className="profile-headline">
               {profile ? profile.headline || "No headline" : "Your intro will appear here"}
             </div>
           </div>
         </div>
 
-        {profile ? (
-          <div className="bio">{generateBio(profile)}</div>
-        ) : (
-          <div className="bio empty">
-            Nothing here yet. Connect your LinkedIn below and the bot will draft your intro from
-            data you approve.
-          </div>
-        )}
+        <div className="bio">
+          {profile ? (
+            <p>{generateBio(profile)}</p>
+          ) : (
+            <p className="placeholder">
+              Nothing here yet. Connect your LinkedIn below and the bot will draft your intro
+              from data you approve.
+            </p>
+          )}
+          {music ? (
+            <p className="interests">{describeMusicPreferences(music)}</p>
+          ) : (
+            <p className="placeholder">Connect Spotify to show what you&apos;re into.</p>
+          )}
+        </div>
 
-        {profile && profile.skills.length > 0 ? (
+        {(profile?.skills.length ?? 0) > 0 || (music?.topArtists.length ?? 0) > 0 ? (
           <div className="skills">
-            {profile.skills.map((skill) => (
+            {(profile?.skills ?? []).map((skill) => (
               <span key={skill} className="skill-chip">
                 {skill}
+              </span>
+            ))}
+            {(music?.topArtists ?? []).map((artist) => (
+              <span key={artist} className="skill-chip artist-chip">
+                ♪ {artist}
               </span>
             ))}
           </div>
         ) : null}
 
         <ConnectControls source="linkedin" connect={linkedin} />
-
-        <div className="music-section">
-          <h3 className="section-title">Music preferences</h3>
-          {music ? (
-            <div className="bio">{describeMusicPreferences(music)}</div>
-          ) : (
-            <div className="bio empty">
-              Nothing here yet. Connect Spotify to show what you&apos;re into.
-            </div>
-          )}
-          {music && music.topArtists.length > 0 ? (
-            <div className="skills">
-              {music.topArtists.map((artist) => (
-                <span key={artist} className="skill-chip">
-                  {artist}
-                </span>
-              ))}
-            </div>
-          ) : null}
-        </div>
-
         <ConnectControls source="spotify" connect={spotify} />
       </div>
     </aside>

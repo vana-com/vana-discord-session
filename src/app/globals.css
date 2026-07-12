@@ -304,19 +304,32 @@ body {
   color: var(--green);
 }
 
-.music-section {
+.profile-name-row {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
-  border-top: 1px solid var(--bg-main);
-  padding-top: 14px;
-  margin-top: 2px;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
-.music-section .section-title {
+.verified-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--green);
   font-size: 12px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+}
+
+.bio p + p {
+  margin-top: 8px;
+}
+
+.bio .placeholder {
   color: var(--text-faint);
+  font-style: italic;
+}
+
+.skill-chip.artist-chip {
+  background: rgba(35, 165, 90, 0.12);
+  color: var(--green);
 }
