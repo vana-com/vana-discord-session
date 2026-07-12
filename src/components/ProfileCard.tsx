@@ -134,9 +134,12 @@ function ConnectControls<T>({
   connect: ReturnType<typeof useVanaSource<T>>;
 }) {
   const { state } = connect;
-  const isLive = state.type === "done";
   const popupBlocked = state.type === "awaiting_approval" && state.popupBlocked;
   const copy = SOURCE_COPY[source];
+
+  // Once the data is live the card speaks for itself — the Verified badge by
+  // the name covers it; no per-source disclaimer, label, or disconnect.
+  if (state.type === "done") return null;
 
   return (
     <>
@@ -180,15 +183,7 @@ function ConnectControls<T>({
         </button>
       ) : null}
 
-      {isLive ? (
-        <button className="secondary-action button-link" type="button" onClick={connect.reset}>
-          Disconnect
-        </button>
-      ) : null}
-
-      <span className={`mode-label ${isLive ? "live" : "sample"}`}>
-        {isLive ? "From your approved data" : "Not connected"}
-      </span>
+      <span className="mode-label sample">Not connected</span>
     </>
   );
 }
@@ -197,7 +192,6 @@ type SourceCopy = {
   connectLabel: string;
   idle: string;
   reading: string;
-  done: string;
 };
 
 const SOURCE_COPY: Record<VanaSource, SourceCopy> = {
@@ -205,13 +199,11 @@ const SOURCE_COPY: Record<VanaSource, SourceCopy> = {
     connectLabel: "Connect LinkedIn to personalize",
     idle: "Connect your real LinkedIn profile through Vana and the bot writes your intro — you approve exactly what it can read.",
     reading: "Reading your approved profile from your Personal Server…",
-    done: "This bio was written from data you approved. Nothing else was shared.",
   },
   spotify: {
     connectLabel: "Connect Spotify to personalize",
     idle: "Connect your Spotify liked songs through Vana to fill this in — you approve exactly what the bot can read.",
     reading: "Reading your approved liked songs from your Personal Server…",
-    done: "These music preferences come from data you approved. Nothing else was shared.",
   },
 };
 
@@ -226,8 +218,6 @@ function statusCopy(copy: SourceCopy, type: string, popupBlocked: boolean): stri
       return "Approve the request in the Vana tab. Keep it open while your data is delivered.";
     case "reading":
       return copy.reading;
-    case "done":
-      return copy.done;
     case "error":
       return "Something went wrong before we could read your data. No data was shared.";
     default:
