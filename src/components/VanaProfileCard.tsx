@@ -47,7 +47,7 @@ function useVanaSource<T>(source: VanaSource) {
   });
 }
 
-export function ProfileCard() {
+export function VanaProfileCard() {
   const linkedin = useVanaSource<LinkedInSnapshot>("linkedin");
   const spotify = useVanaSource<MusicSnapshot>("spotify");
 
