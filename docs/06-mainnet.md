@@ -37,7 +37,7 @@ Same **Fund escrow** flow as Step 3, but with the network toggle on **Mainnet** 
 
 The transport defaults to mainnet, so opening your production app with **no** `network` param runs
 on mainnet. (Explicit `?network=mainnet` also works.) There is no code change — just deploy with
-the mainnet `VANA_APP_PRIVATE_KEY` / `VANA_APP_URL`.
+the mainnet `VANA_PRIVATE_KEY` / `APP_URL`.
 
 ## Recap
 

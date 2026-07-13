@@ -17,11 +17,11 @@ export type VanaServerConfig = {
 };
 
 export function getVanaServerConfig(): VanaServerConfig {
-  const appPrivateKey = process.env.VANA_APP_PRIVATE_KEY?.trim();
-  const rawAppUrl = process.env.VANA_APP_URL?.trim();
+  const appPrivateKey = process.env.VANA_PRIVATE_KEY?.trim();
+  const rawAppUrl = process.env.APP_URL?.trim();
 
-  if (!appPrivateKey) throw new Error("Missing VANA_APP_PRIVATE_KEY.");
-  if (!rawAppUrl) throw new Error("Missing VANA_APP_URL.");
+  if (!appPrivateKey) throw new Error("Missing VANA_PRIVATE_KEY.");
+  if (!rawAppUrl) throw new Error("Missing APP_URL.");
 
   const resolvedUrl = resolveAppUrl(rawAppUrl);
   return {

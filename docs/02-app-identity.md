@@ -28,8 +28,8 @@ key-generation code.
 Copy `.env.example` to `.env.local` and fill in:
 
 ```dotenv
-VANA_APP_PRIVATE_KEY=0x...        # the generated key
-VANA_APP_URL=http://localhost:3010 # must match the App URL you registered
+VANA_PRIVATE_KEY=0x...        # the generated key
+APP_URL=http://localhost:3010 # must match the App URL you registered
 ```
 
 Restart `pnpm dev` after editing `.env.local`.
