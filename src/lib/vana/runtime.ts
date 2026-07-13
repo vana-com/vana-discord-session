@@ -35,6 +35,8 @@ export function resolveLaunchRuntime(params: URLSearchParams): VanaRuntime {
 
   return {
     env: vanaEnv === "dev" ? "dev" : "production",
-    network: vanaEnv === "dev" ? "moksha" : (network ?? "mainnet"),
+    // Default to the Moksha testnet; mainnet must be requested explicitly
+    // with ?network=mainnet.
+    network: vanaEnv === "dev" ? "moksha" : (network ?? "moksha"),
   };
 }

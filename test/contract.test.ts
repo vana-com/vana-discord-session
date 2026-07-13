@@ -75,11 +75,11 @@ test("maps sparse variants and safely ignores malformed profile fields", () => {
 test("strictly validates and resolves launch runtime", () => {
   assert.deepEqual(resolveLaunchRuntime(new URLSearchParams()), {
     env: "production",
-    network: "mainnet",
-  });
-  assert.deepEqual(resolveLaunchRuntime(new URLSearchParams("network=moksha")), {
-    env: "production",
     network: "moksha",
+  });
+  assert.deepEqual(resolveLaunchRuntime(new URLSearchParams("network=mainnet")), {
+    env: "production",
+    network: "mainnet",
   });
   assert.deepEqual(resolveLaunchRuntime(new URLSearchParams("vana_env=dev")), {
     env: "dev",

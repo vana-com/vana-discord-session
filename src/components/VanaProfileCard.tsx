@@ -25,7 +25,7 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 // Forward the launch runtime params (network / vana_env) so the backend talks to
-// the same chain the user approved on. Default (no params) is mainnet.
+// the same chain the user approved on. Default (no params) is the Moksha testnet.
 function requestPath(source: VanaSource): string {
   const input = new URLSearchParams(window.location.search);
   const launch = new URLSearchParams({ source });
