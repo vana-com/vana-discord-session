@@ -82,8 +82,8 @@ These local docs are a session-shaped path through it, pinned to the DevCord app
 Copy `.env.example` to `.env.local` and fill it in during step 2:
 
 ```dotenv
-VANA_APP_PRIVATE_KEY=0x...
-VANA_APP_URL=http://localhost:3010
+VANA_PRIVATE_KEY=0x...
+APP_URL=http://localhost:3010
 ```
 
 Keep the private key server-side. It is never needed in the browser.

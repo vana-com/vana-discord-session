@@ -7,10 +7,10 @@ export function resolveAppUrl(rawAppUrl: string): {
   try {
     appUrl = new URL(rawAppUrl);
   } catch {
-    throw new Error("VANA_APP_URL must be a valid HTTP or HTTPS URL.");
+    throw new Error("APP_URL must be a valid HTTP or HTTPS URL.");
   }
   if (appUrl.protocol !== "http:" && appUrl.protocol !== "https:") {
-    throw new Error("VANA_APP_URL must be a valid HTTP or HTTPS URL.");
+    throw new Error("APP_URL must be a valid HTTP or HTTPS URL.");
   }
 
   return {

@@ -75,11 +75,11 @@ test("maps sparse variants and safely ignores malformed profile fields", () => {
 test("strictly validates and resolves launch runtime", () => {
   assert.deepEqual(resolveLaunchRuntime(new URLSearchParams()), {
     env: "production",
-    network: "mainnet",
-  });
-  assert.deepEqual(resolveLaunchRuntime(new URLSearchParams("network=moksha")), {
-    env: "production",
     network: "moksha",
+  });
+  assert.deepEqual(resolveLaunchRuntime(new URLSearchParams("network=mainnet")), {
+    env: "production",
+    network: "mainnet",
   });
   assert.deepEqual(resolveLaunchRuntime(new URLSearchParams("vana_env=dev")), {
     env: "dev",
@@ -91,7 +91,7 @@ test("strictly validates and resolves launch runtime", () => {
   assert.throws(() => resolveLaunchRuntime(new URLSearchParams("network=moksha&network=mainnet")), /only be provided once/);
 });
 
-test("derives a fixed return URL from VANA_APP_URL origin", () => {
+test("derives a fixed return URL from APP_URL origin", () => {
   assert.deepEqual(resolveAppUrl("https://snapshot.example/some/path?caller=ignored"), {
     appUrl: "https://snapshot.example/some/path?caller=ignored",
     returnOrigin: ORIGIN,

@@ -24,7 +24,7 @@ async function jsonFetch<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 // Forward the launch runtime params (network / vana_env) so the backend talks to
-// the same chain the user approved on. Default (no params) is mainnet.
+// the same chain the user approved on. Default (no params) is the Moksha testnet.
 function requestPath(): string {
   const input = new URLSearchParams(window.location.search);
   const launch = new URLSearchParams();
@@ -35,7 +35,7 @@ function requestPath(): string {
   return query ? `/api/vana/request?${query}` : "/api/vana/request";
 }
 
-export function ProfileCard() {
+export function VanaProfileCard() {
   // ONE connect flow requests LinkedIn + Spotify together, so a single grant
   // covers both scopes and the read returns both in one combined payload.
   const connect = useDirectVanaConnect<CombinedSnapshot>({

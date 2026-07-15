@@ -35,9 +35,9 @@ Same **Fund escrow** flow as Step 3, but with the network toggle on **Mainnet** 
 
 ## 4. Point the app at mainnet
 
-The transport defaults to mainnet, so opening your production app with **no** `network` param runs
-on mainnet. (Explicit `?network=mainnet` also works.) There is no code change — just deploy with
-the mainnet `VANA_APP_PRIVATE_KEY` / `VANA_APP_URL`.
+The transport defaults to the Moksha testnet, so mainnet must be requested explicitly: open your
+production app with `?network=mainnet`. There is no other code change — just deploy with the
+mainnet `VANA_PRIVATE_KEY` / `APP_URL`.
 
 ## Recap
 
@@ -46,7 +46,7 @@ the mainnet `VANA_APP_PRIVATE_KEY` / `VANA_APP_URL`.
 | Select | Protocol network: **Testnet** | Protocol network: **Mainnet** |
 | Fee asset | native VANA | USDC.e |
 | Get funds | [faucet.vana.com/moksha](https://faucet.vana.com/moksha) | bridge USDC.e to Vana |
-| Open app | `?network=moksha` | default (or `?network=mainnet`) |
+| Open app | default (or `?network=moksha`) | `?network=mainnet` |
 
 That's the whole loop: request → approve → read → pay, on either network, from the same code.
 

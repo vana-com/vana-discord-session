@@ -6,16 +6,12 @@ Now read real data a user approves, on Moksha.
 
 ## Open the app on the right network
 
-**Important:** the transport defaults to **mainnet**. To run on Moksha testnet, open DevCord with
-the `network` query param:
+The transport defaults to the **Moksha testnet**, so plain `http://localhost:3010` is already
+correct for this step. (Explicit `?network=moksha` also works.)
 
-```
-http://localhost:3010?network=moksha
-```
-
-The app forwards that param to its backend so the request is created against the same chain your
-app identity is registered and funded on. If you open plain `http://localhost:3010`, it will try
-mainnet and fail against your testnet identity.
+The app forwards the `network` param to its backend so the request is created against the same
+chain your app identity is registered and funded on. Only pass `?network=mainnet` once you have a
+mainnet identity (Step 6).
 
 ## Drive the flow
 
