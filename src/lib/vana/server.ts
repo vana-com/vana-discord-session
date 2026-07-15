@@ -3,8 +3,10 @@ import "server-only";
 import { privateKeyToAccount } from "viem/accounts";
 import { CONTRACTS, createEscrowGatewayClient } from "@opendatalabs/vana-sdk";
 import {
+  createDefaultAccessRequestClient,
   createDirectDataController,
   getDirectEndpoints,
+  PersonalServerReadError,
   readPersonalServerData,
   type EscrowPaymentConfig,
 } from "@opendatalabs/vana-sdk/server";
@@ -82,10 +84,15 @@ export function getVanaController(
  * each scope directly against that one grant with `readPersonalServerData`.
  * Because all reads share the one grant, none overwrites another.
  *
- * Per-scope read failures are logged and left `null` (e.g. the owner never
- * connected that source, so the Personal Server has no data for it); the other
- * scopes still return. If EVERY scope fails, the first error propagates so a
- * genuine break (e.g. a recurring SCOPE_MISMATCH) still surfaces.
+ * A scope with no data on the Personal Server (HTTP 404 — e.g. the owner never
+ * connected that source) is tolerated and left `null`. Any other failure —
+ * 403 SCOPE_MISMATCH (the collision this whole change exists to prevent), a
+ * payment error, an auth error, a 5xx — propagates so a real break surfaces
+ * instead of silently returning a 200 with partial data.
+ *
+ * After every required scope resolves, the access request is acknowledged so
+ * the DCR completes and the approval tab closes (matching the lifecycle that
+ * `controller.readApprovedData` performs for a single scope).
  */
 export async function readApprovedScopes(
   controller: Controller,
@@ -112,8 +119,6 @@ export async function readApprovedScopes(
   const signMessage = (message: string) => account.signMessage({ message });
 
   let combined = emptyCombinedSnapshot();
-  let firstError: unknown = null;
-  let anySucceeded = false;
 
   for (const scope of app.scopes) {
     try {
@@ -126,17 +131,30 @@ export async function readApprovedScopes(
         escrow,
       });
       combined = applyScopeData(combined, scope, result.data);
-      anySucceeded = true;
     } catch (error) {
-      firstError ??= error;
-      console.error(
-        `[vana/read] Scope read failed for ${scope} (grant ${grantId})`,
-        error,
-      );
+      // Only a "no data for this scope" 404 is non-fatal; everything else
+      // (SCOPE_MISMATCH, payment, auth, transport) must surface.
+      if (error instanceof PersonalServerReadError && error.status === 404) {
+        console.warn(`[vana/read] No data for ${scope} (grant ${grantId}); leaving it empty`);
+        continue;
+      }
+      throw error;
     }
   }
 
-  if (!anySucceeded && firstError) throw firstError;
+  // Acknowledge once so Vana Web completes the DCR and closes the approval tab.
+  // Best-effort: an ack failure must not fail an otherwise-successful read.
+  try {
+    const accessRequestClient = createDefaultAccessRequestClient({
+      baseUrl: endpoints.accessRequestBaseUrl,
+      approvalBaseUrl: endpoints.approvalAppBaseUrl,
+      appAddress: account.address,
+      signMessage,
+    });
+    await accessRequestClient.acknowledgeRead?.(requestId);
+  } catch (error) {
+    console.warn(`[vana/read] acknowledgeRead failed for ${requestId}`, error);
+  }
 
   return { scope: status.scope ?? app.scopes.join("+"), data: combined };
 }
