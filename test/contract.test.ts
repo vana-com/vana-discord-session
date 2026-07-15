@@ -14,8 +14,8 @@ import {
   requestBindingCookieName,
   setRequestBindingCookie,
 } from "../src/lib/vana/binding";
-import { assertScopeReadReady } from "../src/lib/vana/capability";
-import { VANA_APPS, isVanaSource } from "../src/lib/vana/constants";
+import { assertGrantReadReady } from "../src/lib/vana/capability";
+import { DEVCORD_APP } from "../src/lib/vana/constants";
 import { mapClientError } from "../src/lib/vana/errors";
 import { jsonNoStore } from "../src/lib/vana/response";
 import { resolveLaunchRuntime } from "../src/lib/vana/runtime";
@@ -118,7 +118,7 @@ test("keeps concurrent request bindings independent and rejects tampering", () =
 
   for (const requestId of ["dcr_one", "dcr_two"]) {
     const binding = createRequestBinding(
-      { requestId, app: VANA_APPS.linkedin, runtime, returnOrigin: ORIGIN, now },
+      { requestId, app: DEVCORD_APP, runtime, returnOrigin: ORIGIN, now },
       SECRET,
     );
     setRequestBindingCookie(writer, requestId, binding, true);
@@ -147,25 +147,29 @@ test("keeps concurrent request bindings independent and rejects tampering", () =
   assert.equal(readRequestBinding(reader, { requestId: "dcr_one", returnOrigin: ORIGIN, now: now + 11 * 60 * 1000 }, SECRET), null);
 });
 
-test("blocks reads until the requested capability is ready, per source", () => {
+test("blocks reads until the grant covering all scopes is ready", () => {
+  const ready = {
+    status: "ready_for_read" as const,
+    grantId: "0xgrant",
+    personalServerUrl: "https://ps.example",
+  };
+  assert.doesNotThrow(() => assertGrantReadReady(ready));
   assert.doesNotThrow(() =>
-    assertScopeReadReady({ status: "ready_for_read", scope: "linkedin.profile" }, VANA_APPS.linkedin),
+    assertGrantReadReady({ ...ready, status: "approved", scope: "linkedin.profile" }),
   );
-  assert.doesNotThrow(() =>
-    assertScopeReadReady({ status: "approved", scope: "spotify.savedTracks" }, VANA_APPS.spotify),
-  );
-  assert.throws(() => assertScopeReadReady({ status: "pending" }, VANA_APPS.linkedin), AccessNotApprovedError);
+  // Not-yet-approved, or approved but missing grant/PS routing, must block.
+  assert.throws(() => assertGrantReadReady({ status: "pending" }), AccessNotApprovedError);
   assert.throws(
-    () => assertScopeReadReady({ status: "approved", scope: "linkedin.skills" }, VANA_APPS.linkedin),
+    () => assertGrantReadReady({ status: "approved", personalServerUrl: "https://ps.example" }),
     AccessNotApprovedError,
   );
   assert.throws(
-    () => assertScopeReadReady({ status: "approved", scope: "linkedin.profile" }, VANA_APPS.spotify),
+    () => assertGrantReadReady({ status: "approved", grantId: "0xgrant" }),
     AccessNotApprovedError,
   );
 });
 
-test("binds requests to their source and rejects cross-source mixups", () => {
+test("binds a request to the app's full scope set and rejects tampered scopes", () => {
   const now = 1_000;
   const runtime = { env: "production", network: "mainnet" } as const;
   const cookies = new Map<string, string>();
@@ -178,29 +182,24 @@ test("binds requests to their source and rejects cross-source mixups", () => {
   };
 
   const binding = createRequestBinding(
-    { requestId: "dcr_spotify", app: VANA_APPS.spotify, runtime, returnOrigin: ORIGIN, now },
+    { requestId: "dcr_multi", app: DEVCORD_APP, runtime, returnOrigin: ORIGIN, now },
     SECRET,
   );
-  setRequestBindingCookie(writer, "dcr_spotify", binding, true);
+  setRequestBindingCookie(writer, "dcr_multi", binding, true);
 
-  const parsed = readRequestBinding(reader, { requestId: "dcr_spotify", returnOrigin: ORIGIN, now: now + 1 }, SECRET);
-  assert.equal(parsed?.source, "spotify");
-  assert.equal(parsed?.scope, "spotify.savedTracks");
-  assert.equal(parsed?.appId, "spotify-music-preferences");
+  const parsed = readRequestBinding(reader, { requestId: "dcr_multi", returnOrigin: ORIGIN, now: now + 1 }, SECRET);
+  assert.equal(parsed?.appId, DEVCORD_APP.id);
+  assert.deepEqual([...(parsed?.scopes ?? [])].sort(), [...DEVCORD_APP.scopes].sort());
 
-  // A binding whose fields mix sources must not validate, even correctly signed.
-  const mixed = { ...VANA_APPS.spotify, scope: VANA_APPS.linkedin.scope };
-  const mixedBinding = createRequestBinding(
-    { requestId: "dcr_mixed", app: mixed, runtime, returnOrigin: ORIGIN, now },
+  // A binding whose scope set doesn't match the app must not validate, even
+  // when correctly signed (the scope set is authenticated, not just carried).
+  const tampered = { ...DEVCORD_APP, scopes: ["linkedin.profile", "linkedin.skills"] };
+  const tamperedBinding = createRequestBinding(
+    { requestId: "dcr_tampered", app: tampered, runtime, returnOrigin: ORIGIN, now },
     SECRET,
   );
-  setRequestBindingCookie(writer, "dcr_mixed", mixedBinding, true);
-  assert.equal(readRequestBinding(reader, { requestId: "dcr_mixed", returnOrigin: ORIGIN, now: now + 1 }, SECRET), null);
-
-  assert.equal(isVanaSource("spotify"), true);
-  assert.equal(isVanaSource("linkedin"), true);
-  assert.equal(isVanaSource("github"), false);
-  assert.equal(isVanaSource(undefined), false);
+  setRequestBindingCookie(writer, "dcr_tampered", tamperedBinding, true);
+  assert.equal(readRequestBinding(reader, { requestId: "dcr_tampered", returnOrigin: ORIGIN, now: now + 1 }, SECRET), null);
 });
 
 test("maps SDK and unknown failures to sanitized client errors", () => {

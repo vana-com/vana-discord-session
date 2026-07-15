@@ -1,22 +1,19 @@
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import {
+  DEVCORD_APP,
   REQUEST_BINDING_TTL_MS,
-  VANA_APPS,
-  isVanaSource,
   type VanaAppDefinition,
-  type VanaSource,
 } from "./constants";
 import type { VanaRuntime } from "./runtime";
 
 const COOKIE_PREFIX = "vana_request_";
-const BINDING_VERSION = 1;
+const BINDING_VERSION = 2;
 
 export type RequestBinding = {
   version: typeof BINDING_VERSION;
   requestId: string;
   appId: string;
-  source: VanaSource;
-  scope: string;
+  scopes: string[];
   returnOrigin: string;
   runtime: VanaRuntime;
   expiresAt: number;
@@ -58,8 +55,7 @@ export function createRequestBinding(
     version: BINDING_VERSION,
     requestId: input.requestId,
     appId: input.app.id,
-    source: input.app.source,
-    scope: input.app.scope,
+    scopes: [...input.app.scopes],
     returnOrigin: input.returnOrigin,
     runtime: input.runtime,
     expiresAt: (input.now ?? Date.now()) + REQUEST_BINDING_TTL_MS,
@@ -132,18 +128,25 @@ function safeEqual(provided: string, expected: string): boolean {
 
 function isRequestBinding(value: unknown): value is RequestBinding {
   if (!isRecord(value) || !isRecord(value.runtime)) return false;
-  if (!isVanaSource(value.source)) return false;
-  const app = VANA_APPS[value.source];
+  if (value.appId !== DEVCORD_APP.id) return false;
+  if (!isExactScopeSet(value.scopes, DEVCORD_APP.scopes)) return false;
   return (
     value.version === BINDING_VERSION &&
     typeof value.requestId === "string" &&
     value.requestId.length > 0 &&
-    value.appId === app.id &&
-    value.scope === app.scope &&
     typeof value.returnOrigin === "string" &&
     Number.isFinite(value.expiresAt) &&
     (value.runtime.env === "dev" || value.runtime.env === "production") &&
     (value.runtime.network === "moksha" || value.runtime.network === "mainnet")
+  );
+}
+
+/** True when `value` is exactly the app's scope set (same members, no extras). */
+function isExactScopeSet(value: unknown, expected: readonly string[]): value is string[] {
+  return (
+    Array.isArray(value) &&
+    value.length === expected.length &&
+    value.every((scope) => typeof scope === "string" && expected.includes(scope))
   );
 }
 
