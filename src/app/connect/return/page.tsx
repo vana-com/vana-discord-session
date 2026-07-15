@@ -1,6 +1,6 @@
 import { readRequestBinding } from "@/lib/vana/binding";
-import { assertScopeReadReady } from "@/lib/vana/capability";
-import { resolveVanaApp } from "@/lib/vana/constants";
+import { assertGrantReadReady } from "@/lib/vana/capability";
+import { DEVCORD_APP } from "@/lib/vana/constants";
 import { returnStateForStatus, type ReturnState } from "@/lib/vana/return-state";
 import { getVanaController, getVanaServerConfig } from "@/lib/vana/server";
 import { cookies } from "next/headers";
@@ -36,12 +36,13 @@ async function authoritativeReturnState(requestId: string | null): Promise<Retur
     );
     if (!binding) return invalidReturn();
 
-    const app = resolveVanaApp(binding.source);
-    const status = await getVanaController(binding.runtime, app, config).getAccessRequestStatus(
-      requestId,
-    );
+    const status = await getVanaController(
+      binding.runtime,
+      DEVCORD_APP,
+      config,
+    ).getAccessRequestStatus(requestId);
     if (status.status === "approved" || status.status === "ready_for_read") {
-      assertScopeReadReady(status, app);
+      assertGrantReadReady(status);
     }
     return returnStateForStatus(status.status);
   } catch (error) {

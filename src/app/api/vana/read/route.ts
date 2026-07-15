@@ -1,9 +1,7 @@
-import { mapLinkedInProfile } from "@/lib/linkedin-profile";
-import { mapSpotifyMusic } from "@/lib/spotify-music";
-import { assertScopeReadReady } from "@/lib/vana/capability";
 import { mapClientError } from "@/lib/vana/errors";
 import { getBoundVanaRequest, requestIdFromUrl } from "@/lib/vana/request";
 import { jsonNoStore } from "@/lib/vana/response";
+import { readApprovedScopes } from "@/lib/vana/server";
 import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
@@ -24,16 +22,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const status = await bound.controller.getAccessRequestStatus(requestId);
-    assertScopeReadReady(status, bound.app);
-    const result = await bound.controller.readApprovedData({ requestId });
-    return jsonNoStore({
-      scope: result.scope,
-      data:
-        bound.app.source === "spotify"
-          ? mapSpotifyMusic(result.data)
-          : mapLinkedInProfile(result.data),
-    });
+    // Read every granted scope off the single grant and return a combined
+    // snapshot. `scope` is the primary scope label; `data` carries per-source
+    // results (LinkedIn profile + Spotify liked songs).
+    const result = await readApprovedScopes(
+      bound.controller,
+      bound.binding.runtime,
+      bound.app,
+      bound.config,
+      requestId,
+    );
+    return jsonNoStore({ scope: result.scope, data: result.data });
   } catch (error) {
     const clientError = mapClientError(error);
     console.error(`[vana/read] Read failed for ${requestId}`, error);

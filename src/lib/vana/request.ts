@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server";
 import { readRequestBinding } from "./binding";
-import { resolveVanaApp } from "./constants";
+import { DEVCORD_APP } from "./constants";
 import { getVanaController, getVanaServerConfig } from "./server";
 
 export function requestIdFromUrl(url: string): string | null {
@@ -18,6 +18,6 @@ export function getBoundVanaRequest(request: NextRequest, requestId: string) {
     config.appPrivateKey,
   );
   if (!binding) return null;
-  const app = resolveVanaApp(binding.source);
+  const app = DEVCORD_APP;
   return { binding, app, controller: getVanaController(binding.runtime, app, config), config };
 }

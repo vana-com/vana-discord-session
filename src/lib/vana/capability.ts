@@ -2,13 +2,19 @@ import {
   AccessNotApprovedError,
   type AccessRequestStatus,
 } from "@opendatalabs/vana-sdk/server";
-import type { VanaAppDefinition } from "./constants";
 
-export function assertScopeReadReady(status: AccessRequestStatus, app: VanaAppDefinition): void {
+/**
+ * A DCR requesting multiple scopes mints ONE grant covering all of them, so
+ * readiness is a grant-level check (approved + grantId + Personal Server URL),
+ * not a single-scope match. The status endpoint only reports `scope` = the
+ * first scope, but `grantId` covers every requested scope.
+ */
+export function assertGrantReadReady(status: AccessRequestStatus): void {
   if (
     (status.status !== "approved" && status.status !== "ready_for_read") ||
-    status.scope !== app.scope
+    !status.grantId ||
+    !status.personalServerUrl
   ) {
-    throw new AccessNotApprovedError(`${app.name} capability is not ready.`);
+    throw new AccessNotApprovedError("The approved grant is not ready to read.");
   }
 }
